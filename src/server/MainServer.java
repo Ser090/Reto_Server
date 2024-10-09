@@ -9,7 +9,7 @@ package server;
  *
  * @author 2dam
  */
-public class Server {
+public class MainServer {
 
     /**
      * @param args the command line arguments

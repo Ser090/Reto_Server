@@ -1,5 +1,6 @@
 /build.xml
 /manifest.mf
-/src/dbserver/odooDev.properties
 /build/
 /dist/
+/lib/
+/src/dbserver/odooDev.properties
