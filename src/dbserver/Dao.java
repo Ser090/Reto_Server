@@ -207,7 +207,8 @@ public class Dao implements Signable {
     }
 
     // Método para obtener las provincias de España
-    public List<String> getCountries() {
+    @Override
+    public Message getCountries() {
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -227,11 +228,10 @@ public class Dao implements Signable {
                 provincias.add(rs.getString("name"));
             }
 
-            return provincias;
+            return new Message(MessageType.COUNTRIES_OK, provincias);
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
+            return new Message(MessageType.COUNTRIES_ERROR, e);
         } finally {
             // Asegurarse de liberar la conexión y cerrar ResultSet
             try {
@@ -245,7 +245,7 @@ public class Dao implements Signable {
                     pool.releaseConnection(conn);
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                return new Message(MessageType.COUNTRIES_ERROR, e);
             }
         }
     }

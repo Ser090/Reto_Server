@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilidades.Message;
+import utilidades.MessageType;
 import utilidades.Signable;
 import utilidades.User;
 
@@ -23,6 +24,8 @@ public class Worker implements Runnable, Signable {
 
     private Socket clienteSocket;
     private Signable dao;
+    private ObjectInputStream inputStream;
+    private ObjectOutputStream outputStream;
 
     public Worker(Socket clienteSocket, Signable dao) {
         this.clienteSocket = clienteSocket;
@@ -31,11 +34,15 @@ public class Worker implements Runnable, Signable {
 
     @Override
     public void run() {
-        try (ObjectOutputStream outputStream = new ObjectOutputStream(clienteSocket.getOutputStream());
-                ObjectInputStream inputStream = new ObjectInputStream(clienteSocket.getInputStream())) {
+        try {
+            outputStream = new ObjectOutputStream(clienteSocket.getOutputStream());
+            inputStream = new ObjectInputStream(clienteSocket.getInputStream());
 
             Object mensajeObject = inputStream.readObject();
-
+            if (mensajeObject instanceof Message) {
+                Message mensaje = (Message) mensajeObject;
+                procesarMensaje(mensaje);
+            }
 
         } catch (IOException | ClassNotFoundException ex) {
             if (ex instanceof IOException) {
@@ -43,19 +50,63 @@ public class Worker implements Runnable, Signable {
             } else {
                 Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+        } finally {
+            cerrarConexion();
         }
 
     }
 
     @Override
     public Message signIn(User user) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return dao.signIn(user);
     }
 
     @Override
     public Message signUp(User user) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return dao.signUp(user);
+    }
+
+    @Override
+    public Message getCountries() {
+        return dao.getCountries();
+    }
+
+    //METODOS PRIVADOS
+    private void procesarMensaje(Message mensaje) {
+        Message respuesta;
+        User user = (User) mensaje.getObject();
+        if (user == null) {
+            respuesta = new Message(MessageType.BAD_RESPONSE, user);
+        } else {
+            switch (mensaje.getType()) {
+                case COUNTRIES_REQUEST:
+                    respuesta = getCountries();
+                    break;
+                default:
+                    respuesta = new Message(MessageType.BAD_RESPONSE, user);
+            }
+        }
+        enviarRespuesta(respuesta);
+
+    }
+
+    private void enviarRespuesta(Message respuesta) {
+        try {
+            outputStream.writeObject(respuesta);
+            outputStream.flush();
+        } catch (IOException e) {
+            new Message(MessageType.BAD_RESPONSE, e);
+        }
+    }
+
+    private void cerrarConexion() {
+        try {
+            if (clienteSocket != null) {
+                clienteSocket.close();
+            }
+        } catch (Exception e) {
+            new Message(MessageType.BAD_RESPONSE, e);
+        }
     }
 
 }

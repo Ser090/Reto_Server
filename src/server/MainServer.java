@@ -5,17 +5,41 @@
  */
 package server;
 
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.logging.Logger;
+
 /**
  *
- * @author 2dam
+ * @author Sergio
  */
 public class MainServer {
+
+    private int puerto;
+
+    public MainServer(int puerto) {
+        this.puerto = puerto;
+    }
+
+    public void iniciar() {
+        try (ServerSocket serverSocket = new ServerSocket(puerto)) {
+            Logger.getLogger("Servidor iniciado en el puerto" + puerto);
+            while (true) {
+                Socket clienteSocket = serverSocket.accept();
+                Logger.getLogger("Cliente conectado desde: " + clienteSocket.getInetAddress());
+                //
+                //new Thread(worker).start();
+            }
+        } catch (Exception e) {
+        }
+    }
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // TODO code application logic here
+        MainServer servidor = new MainServer(8080);
+        servidor.iniciar();
     }
 
 }
