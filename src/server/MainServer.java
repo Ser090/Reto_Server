@@ -24,10 +24,12 @@ public class MainServer {
 
     public void iniciar() {
         try (ServerSocket serverSocket = new ServerSocket(puerto)) {
-            Logger.getLogger("Servidor iniciado en el puerto" + puerto);
+            Logger.getLogger("Servidor iniciado en el puerto " + puerto);
+            System.out.println("Servidor iniciado en el puerto " + puerto);
             while (true) {
                 Socket clienteSocket = serverSocket.accept();
                 Logger.getLogger("Cliente conectado desde: " + clienteSocket.getInetAddress());
+                System.out.println("Cliente conectado desde: " + clienteSocket.getInetAddress());
                 Worker worker = ApplicationServerFactory.getInstance().crearWorker(clienteSocket);
                 new Thread(worker).start();
             }
@@ -39,7 +41,7 @@ public class MainServer {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        MainServer servidor = new MainServer(8080);
+        MainServer servidor = new MainServer(1234);
         servidor.iniciar();
     }
 

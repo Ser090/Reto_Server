@@ -11,7 +11,6 @@
 -- Table: public.datos_usuario
 
 -- DROP TABLE IF EXISTS public.datos_usuario;
-
 CREATE TABLE IF NOT EXISTS public.datos_usuario
 (
     id integer NOT NULL DEFAULT nextval('res_users_id_seq'::regclass),

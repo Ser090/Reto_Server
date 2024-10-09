@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.Stack;
 
 public class PostgresConnectionPool {
@@ -41,14 +42,10 @@ public class PostgresConnectionPool {
     // Método para cargar propiedades de un archivo
     private void loadProperties() {
         Properties properties = new Properties();
-        try (FileInputStream input = new FileInputStream("db.properties")) {
-            properties.load(input);
-            url = properties.getProperty("db.url");
-            user = properties.getProperty("db.user");
-            password = properties.getProperty("db.password");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        ResourceBundle bundle = ResourceBundle.getBundle("dbserver.dbConnection");
+        url = bundle.getString("db.url");
+        user = bundle.getString("db.user");
+        password = bundle.getString("db.password");
     }
 
     // Método para obtener una conexión del pool
