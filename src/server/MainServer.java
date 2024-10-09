@@ -5,6 +5,7 @@
  */
 package server;
 
+import dbserver.ApplicationServerFactory;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Logger;
@@ -27,8 +28,8 @@ public class MainServer {
             while (true) {
                 Socket clienteSocket = serverSocket.accept();
                 Logger.getLogger("Cliente conectado desde: " + clienteSocket.getInetAddress());
-                //
-                //new Thread(worker).start();
+                Worker worker = ApplicationServerFactory.getInstance().crearWorker(clienteSocket);
+                new Thread(worker).start();
             }
         } catch (Exception e) {
         }
