@@ -7,13 +7,14 @@ import java.sql.SQLException;
 import dbserver.PostgresConnectionPool; // Cambiado a PostgresConnectionPool
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 import utilidades.Message;
 import utilidades.MessageType;
 import utilidades.Signable;
 import utilidades.User;
 
 public class Dao implements Signable {
-
+    private static final Logger logger = Logger.getLogger(Dao.class.getName());
     private PostgresConnectionPool pool;
 
     private final String sqlInsertUser = "INSERT INTO res_users (login, password, 1, 1, active) VALUES (?, ?, ?, ?, true) RETURNING id";
@@ -40,7 +41,7 @@ public class Dao implements Signable {
 
             // Verificar si la conexión es válida
             if (conn == null || !conn.isValid(2)) {
-                System.out.println("Error: No se pudo obtener una conexión válida.");
+                logger.warning("Error: No se pudo obtener una conexión válida.");
                 return new Message(MessageType.SIGNUP_ERROR, user);
             }
 
@@ -71,7 +72,7 @@ public class Dao implements Signable {
 
                 // Confirmar la transacción
                 conn.commit();
-                System.out.println("Usuario registrado correctamente: " + user.getLogin());
+                logger.info("Usuario registrado correctamente: " + user.getLogin());
                 return new Message(MessageType.OK_RESPONSE, user);
             } else {
                 conn.rollback();

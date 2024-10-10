@@ -6,6 +6,7 @@
 package dbserver;
 
 import java.net.Socket;
+import java.util.logging.Logger;
 import server.Worker;
 
 /**
@@ -13,7 +14,7 @@ import server.Worker;
  * @author Sergio
  */
 public class ApplicationServerFactory {
-
+    private static final Logger logger = Logger.getLogger(ApplicationServerFactory.class.getName());
     private static ApplicationServerFactory instance;
     private PostgresConnectionPool pool;
 
