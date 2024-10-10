@@ -4,3 +4,4 @@
 /dist/
 /lib/
 /src/dbserver/odooDev.properties
+/src/dbserver/dbConnection.properties
