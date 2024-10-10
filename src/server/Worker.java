@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilidades.Message;
 import utilidades.MessageType;
@@ -21,6 +20,8 @@ import utilidades.User;
  * @author Sergio
  */
 public class Worker implements Runnable, Signable {
+
+    private static final Logger logger = Logger.getLogger(Worker.class.getName());
 
     private Socket clienteSocket;
     private Signable dao;
@@ -46,9 +47,9 @@ public class Worker implements Runnable, Signable {
 
         } catch (IOException | ClassNotFoundException ex) {
             if (ex instanceof IOException) {
-                Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
+                logger.warning("Fallo en la lectura del fichero");
             } else {
-                Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
+                logger.warning("Clase no encontrada");
             }
         } finally {
             cerrarConexion();
@@ -85,6 +86,12 @@ public class Worker implements Runnable, Signable {
                     case COUNTRIES_REQUEST:
                         respuesta = getCountries();
                         break;
+                    case SIGN_UP_REQUEST:
+                        respuesta = signUp(user);
+                        break;
+                    case SIGN_IN_REQUEST:
+                        respuesta = signIn(user);
+                        break;
                     default:
                         respuesta = new Message(MessageType.BAD_RESPONSE, user);
                 }
@@ -100,6 +107,7 @@ public class Worker implements Runnable, Signable {
             outputStream.writeObject(respuesta);
             outputStream.flush();
         } catch (IOException e) {
+            logger.warning("Fallo en la lectura o escritura del fichero");
             new Message(MessageType.BAD_RESPONSE, e);
         }
     }
@@ -110,6 +118,7 @@ public class Worker implements Runnable, Signable {
                 clienteSocket.close();
             }
         } catch (Exception e) {
+            logger.severe("Fallo en el cierre del server");
             new Message(MessageType.BAD_RESPONSE, e);
         }
     }

@@ -1,16 +1,15 @@
 package dbserver;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Stack;
+import java.util.logging.Logger;
 
 public class PostgresConnectionPool {
-
+    private static final Logger logger = Logger.getLogger(PostgresConnectionPool.class.getName());
     private Stack<Connection> connectionPool = new Stack<>();
     private String url;
     private String user;
@@ -28,10 +27,10 @@ public class PostgresConnectionPool {
             for (int i = 0; i < poolSize; i++) {
                 Connection conn = DriverManager.getConnection(url, user, password);
                 if (conn != null) {
-                    System.out.println("Conexión " + (i + 1) + " creada y añadida al pool.");
+                    logger.info("Conexión " + (i + 1) + " creada y añadida al pool.");
                     connectionPool.push(conn);
                 } else {
-                    System.out.println("Error al crear la conexión " + (i + 1));
+                    logger.warning("Error al crear la conexión " + (i + 1));
                 }
             }
         } catch (SQLException | ClassNotFoundException e) {
@@ -51,10 +50,10 @@ public class PostgresConnectionPool {
     // Método para obtener una conexión del pool
     public synchronized Connection getConnection() throws SQLException {
         if (connectionPool.isEmpty()) {
-            System.out.println("No hay conexiones en el pool, creando una nueva...");
+            logger.info("No hay conexiones en el pool, creando una nueva...");
             return DriverManager.getConnection(url, user, password);
         } else {
-            System.out.println("Conexiones disponibles: " + connectionPool.size());
+            logger.info("Conexiones disponibles: " + connectionPool.size());
             return connectionPool.pop();
         }
     }
@@ -62,6 +61,6 @@ public class PostgresConnectionPool {
     // Método para liberar una conexión y devolverla al pool
     public synchronized void releaseConnection(Connection connection) {
         connectionPool.push(connection);
-        System.out.println("Conexión liberada de vuelta al pool. Quedan: " + connectionPool.size());
+        logger.info("Conexión liberada de vuelta al pool. Quedan: " + connectionPool.size());
     }
 }
