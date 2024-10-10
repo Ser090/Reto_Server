@@ -14,6 +14,7 @@ import utilidades.Signable;
 import utilidades.User;
 
 public class Dao implements Signable {
+
     private static final Logger logger = Logger.getLogger(Dao.class.getName());
     private PostgresConnectionPool pool;
 
@@ -80,7 +81,7 @@ public class Dao implements Signable {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+
             try {
                 if (conn != null) {
                     conn.rollback();  // Revertir la transacción en caso de error

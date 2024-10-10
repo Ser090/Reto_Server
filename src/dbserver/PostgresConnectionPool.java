@@ -9,6 +9,7 @@ import java.util.Stack;
 import java.util.logging.Logger;
 
 public class PostgresConnectionPool {
+
     private static final Logger logger = Logger.getLogger(PostgresConnectionPool.class.getName());
     private Stack<Connection> connectionPool = new Stack<>();
     private String url;
@@ -30,11 +31,13 @@ public class PostgresConnectionPool {
                     logger.info("Conexión " + (i + 1) + " creada y añadida al pool.");
                     connectionPool.push(conn);
                 } else {
-                    logger.warning("Error al crear la conexión " + (i + 1));
+                    logger.warning("No se ha podido crear la conexión " + (i + 1));
                 }
             }
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            logger.warning("Error de conexión a la base de datos.");
+        } catch (ClassNotFoundException e) {
+            logger.warning("Driver no encontrado");
         }
     }
 
