@@ -18,7 +18,8 @@ public class Dao implements Signable {
     private static final Logger logger = Logger.getLogger(Dao.class.getName());
     private PostgresConnectionPool pool;
 
-    private final String sqlInsertUser = "INSERT INTO res_users (login, password, 1, 1, active) VALUES (?, ?, ?, ?, true) RETURNING id";
+    private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password)VALUES (1, ?, ?, ?, ?) RETURNING id";
+    private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email)VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertDatosUsuarios = "INSERT INTO datos_usuarios (res_user_id, nombre, apellido, telefono, localidad, provincia, fecha_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?)";
     private final String sqlSignIn = "SELECT * FROM res_users WHERE login = ? AND password = ?";
     private final String sqlLoginExist = "SELECT * FROM res_users WHERE login = ?";
@@ -32,6 +33,7 @@ public class Dao implements Signable {
     public Message signUp(User user) {
 
         Connection conn = null;
+        PreparedStatement stmtInsertPartner = null;
         PreparedStatement stmtInsertUser = null;
         PreparedStatement stmtInsertDatosUsuarios = null;
         ResultSet rs = null;
@@ -49,34 +51,39 @@ public class Dao implements Signable {
             // Desactivar autocommit para manejar la transacción manualmente
             conn.setAutoCommit(false);
 
-            // Insertar en res_user y obtener el ID generado
-            stmtInsertUser = conn.prepareStatement(sqlInsertUser);
-            stmtInsertUser.setString(1, user.getLogin());
-            stmtInsertUser.setString(2, user.getPass());
-            rs = stmtInsertUser.executeQuery();
-
+            // Insertar en res_partner y obtener el ID generado
+            stmtInsertPartner = conn.prepareStatement(sqlInsertPartner);
+            stmtInsertPartner.setString(1, user.getName());
+            stmtInsertPartner.setString(2, user.getName());
+            stmtInsertPartner.setString(3, user.getStreet());
+            stmtInsertPartner.setString(4, user.getZip());
+            stmtInsertPartner.setString(5, user.getCity());
+            stmtInsertPartner.setString(6, user.getLogin());
+            rs = stmtInsertPartner.executeQuery();
             if (rs.next()) {
-                int resUserId = rs.getInt("id");
-                user.setResUserId(resUserId);  // Actualizar el ID en el objeto User
+                int resPartnerId = rs.getInt("id");
 
-                // Ahora insertar los otros datos en datos_usuarios
-                stmtInsertDatosUsuarios = conn.prepareStatement(sqlInsertDatosUsuarios);
-                stmtInsertDatosUsuarios.setInt(1, resUserId);
-                stmtInsertDatosUsuarios.setString(2, user.getNombre());
-                stmtInsertDatosUsuarios.setString(3, user.getApellido());
-                stmtInsertDatosUsuarios.setInt(4, user.getTelefono());
-                stmtInsertDatosUsuarios.setString(5, user.getLocalidad());
-                stmtInsertDatosUsuarios.setString(6, user.getProvincia());
-                stmtInsertDatosUsuarios.setDate(7, new java.sql.Date(user.getFechaNacimiento().getTime()));
+                // Insertar en res_users y obtener el ID generado
+                stmtInsertUser = conn.prepareStatement(sqlInsertPartner);
+                stmtInsertUser.setInt(1, resPartnerId);
+                stmtInsertUser.setBoolean(2, user.getActive());
+                stmtInsertUser.setString(3, user.getLogin());
+                stmtInsertUser.setString(4, user.getPass());
+                rs = stmtInsertUser.executeQuery();
+                if (rs.next()) {
+                    int resUserId = rs.getInt("id");
+                    user.setResUserId(resUserId);
 
-                stmtInsertDatosUsuarios.executeUpdate();
+                    conn.commit();
 
-                // Confirmar la transacción
-                conn.commit();
-                logger.info("Usuario registrado correctamente: " + user.getLogin());
-                return new Message(MessageType.OK_RESPONSE, user);
+                } else {
+                    conn.rollback();
+                    logger.severe("Error al insertar en base de datos: " + user.getLogin());
+                    return new Message(MessageType.SIGNUP_ERROR, user);
+                }
             } else {
                 conn.rollback();
+                logger.severe("Error al insertar en base de datos: " + user.getLogin());
                 return new Message(MessageType.SIGNUP_ERROR, user);
             }
 
@@ -85,11 +92,13 @@ public class Dao implements Signable {
             try {
                 if (conn != null) {
                     conn.rollback();  // Revertir la transacción en caso de error
+                    return new Message(MessageType.SIGNUP_ERROR, user);
                 }
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                logger.severe("Error al insertar en base de datos: " + user.getLogin());
+                return new Message(MessageType.SIGNUP_ERROR, user);
             }
-            return new Message(MessageType.SIGNUP_ERROR, user);
+
         } finally {
             // Asegurarse de liberar la conexión y cerrar recursos
             try {
@@ -99,14 +108,21 @@ public class Dao implements Signable {
                 if (stmtInsertUser != null) {
                     stmtInsertUser.close();
                 }
-                if (stmtInsertDatosUsuarios != null) {
-                    stmtInsertDatosUsuarios.close();
+                if (stmtInsertPartner != null) {
+                    stmtInsertPartner.close();
                 }
+
                 if (conn != null) {
                     pool.releaseConnection(conn);
                 }
+
+                //Todo a ido bien sale por aqui.
+                logger.info("Usuario registrado correctamente: " + user.getLogin());
+                return new Message(MessageType.OK_RESPONSE, user);
+
             } catch (SQLException e) {
-                e.printStackTrace();
+                logger.severe("Error al insertar en base de datos: " + user.getLogin());
+                return new Message(MessageType.SIGNUP_ERROR, user);
             }
         }
     }

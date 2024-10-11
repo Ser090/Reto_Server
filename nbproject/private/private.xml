@@ -5,5 +5,15 @@
         <group name="RETO_1_SIGNUP_SIGN_IN">
             <file>file:/C:/2DAM/RETOS%20INTERMODULARES/RETO_1_SIGN_UP_SIGN_IN/Server/src/server/Worker.java</file>
         </group>
+        <group name="Reto1_Prod">
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/DB/CreacionTabla_datos_usuario.sql</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/.gitignore</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/server/MainServer.java</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/dbserver/ApplicationServerFactory.java</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/dbserver/PostgresConnectionPool.java</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/dbserver/dbConnection.properties</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/dbserver/Dao.java</file>
+            <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/server/Worker.java</file>
+        </group>
     </open-files>
 </project-private>
