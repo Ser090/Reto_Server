@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class MainServer {
 
     private static final Logger logger = Logger.getLogger(MainServer.class.getName());
-    private int puerto;
+    private final int puerto;
 
     public MainServer(int puerto) {
         this.puerto = puerto;
@@ -33,6 +33,7 @@ public class MainServer {
                 new Thread(worker).start();
             }
         } catch (Exception e) {
+            logger.warning("Error al crear Server Socket.");
         }
     }
 
