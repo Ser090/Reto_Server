@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  */
 public class MainServer {
 
-    private static final Logger logger = Logger.getLogger(MainServer.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MainServer.class.getName());
     private final int puerto;
 
     public MainServer(int puerto) {
@@ -25,15 +25,15 @@ public class MainServer {
 
     public void iniciar() {
         try (ServerSocket serverSocket = new ServerSocket(puerto)) {
-            logger.info("Servidor iniciado en el puerto " + puerto);
+            LOGGER.info("Servidor iniciado en el puerto " + puerto);
             while (true) {
                 Socket clienteSocket = serverSocket.accept();
-                logger.info("Cliente conectado desde: " + clienteSocket.getInetAddress());
+                LOGGER.info("Cliente conectado desde: " + clienteSocket.getInetAddress());
                 Worker worker = ApplicationServerFactory.getInstance().crearWorker(clienteSocket);
                 new Thread(worker).start();
             }
         } catch (Exception e) {
-            logger.warning("Error al crear Server Socket.");
+            LOGGER.warning("Error al crear Server Socket.");
         }
     }
 
