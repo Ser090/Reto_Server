@@ -75,31 +75,22 @@ public class Worker implements Runnable, Signable {
     //METODOS PRIVADOS
     private void procesarMensaje(Message mensaje) {
         Message respuesta;
-        if (mensaje.getType().equals(MessageType.COUNTRIES_REQUEST)) {
-            respuesta = getCountries();
+        User user = (User) mensaje.getObject();
+        if (user == null) {
+            respuesta = new Message(MessageType.BAD_RESPONSE, null);
         } else {
-            User user = (User) mensaje.getObject();
-            if (user == null) {
-                respuesta = new Message(MessageType.BAD_RESPONSE, user);
-            } else {
-                switch (mensaje.getType()) {
-                    case COUNTRIES_REQUEST:
-                        respuesta = getCountries();
-                        break;
-                    case SIGN_UP_REQUEST:
-                        respuesta = signUp(user);
-                        break;
-                    case SIGN_IN_REQUEST:
-                        respuesta = signIn(user);
-                        break;
-                    default:
-                        respuesta = new Message(MessageType.BAD_RESPONSE, user);
-                }
+            switch (mensaje.getType()) {
+                case SIGN_UP_REQUEST:
+                    respuesta = signUp(user);
+                    break;
+                case SIGN_IN_REQUEST:
+                    respuesta = signIn(user);
+                    break;
+                default:
+                    respuesta = new Message(MessageType.BAD_RESPONSE, user);
             }
         }
-
         enviarRespuesta(respuesta);
-
     }
 
     private void enviarRespuesta(Message respuesta) {
