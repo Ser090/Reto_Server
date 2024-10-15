@@ -67,11 +67,6 @@ public class Worker implements Runnable, Signable {
         return dao.signUp(user);
     }
 
-    @Override
-    public Message getCountries() {
-        return dao.getCountries();
-    }
-
     //METODOS PRIVADOS
     private void procesarMensaje(Message mensaje) {
         Message respuesta;

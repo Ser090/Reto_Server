@@ -5,8 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import dbserver.PostgresConnectionPool; // Cambiado a PostgresConnectionPool
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.logging.Logger;
 import utilidades.Message;
 import utilidades.MessageType;
@@ -18,12 +17,9 @@ public class Dao implements Signable {
     private static final Logger logger = Logger.getLogger(Dao.class.getName());
     private PostgresConnectionPool pool;
 
-    private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password)VALUES (1, ?, ?, ?, ?) RETURNING id";
+    private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type)VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email)VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
-    private final String sqlInsertDatosUsuarios = "INSERT INTO datos_usuarios (res_user_id, nombre, apellido, telefono, localidad, provincia, fecha_nacimiento) VALUES (?, ?, ?, ?, ?, ?, ?)";
     private final String sqlSignIn = "SELECT * FROM res_users WHERE login = ? AND password = ?";
-    private final String sqlLoginExist = "SELECT * FROM res_users WHERE login = ?";
-    private final String sqlCountries = "SELECT name FROM res_country_state WHERE country_id = (SELECT id FROM res_country WHERE code = 'ES')";
 
     public Dao(PostgresConnectionPool pool) {
         this.pool = pool;
@@ -35,7 +31,6 @@ public class Dao implements Signable {
         Connection conn = null;
         PreparedStatement stmtInsertPartner = null;
         PreparedStatement stmtInsertUser = null;
-        PreparedStatement stmtInsertDatosUsuarios = null;
         ResultSet rs = null;
 
         try {
@@ -53,54 +48,64 @@ public class Dao implements Signable {
 
             // Insertar en res_partner y obtener el ID generado
             stmtInsertPartner = conn.prepareStatement(sqlInsertPartner);
-            stmtInsertPartner.setString(1, user.getName());
-            stmtInsertPartner.setString(2, user.getName());
-            stmtInsertPartner.setString(3, user.getStreet());
-            stmtInsertPartner.setString(4, user.getZip());
-            stmtInsertPartner.setString(5, user.getCity());
-            stmtInsertPartner.setString(6, user.getLogin());
+            stmtInsertPartner.setString(1, user.getName());      // nombre
+            stmtInsertPartner.setString(2, user.getName());      // display_name
+            stmtInsertPartner.setString(3, user.getStreet());    // street
+            stmtInsertPartner.setString(4, user.getZip());       // zip
+            stmtInsertPartner.setString(5, user.getCity());      // city
+            stmtInsertPartner.setString(6, user.getLogin());     // email
+
+            // Ejecutar la consulta y obtener el ID del res_partner
             rs = stmtInsertPartner.executeQuery();
             if (rs.next()) {
                 int resPartnerId = rs.getInt("id");
 
                 // Insertar en res_users y obtener el ID generado
-                stmtInsertUser = conn.prepareStatement(sqlInsertPartner);
-                stmtInsertUser.setInt(1, resPartnerId);
-                stmtInsertUser.setBoolean(2, user.getActive());
-                stmtInsertUser.setString(3, user.getLogin());
-                stmtInsertUser.setString(4, user.getPass());
+                stmtInsertUser = conn.prepareStatement(sqlInsertUser);
+                stmtInsertUser.setInt(1, resPartnerId);           // partner_id
+                stmtInsertUser.setBoolean(2, user.getActive());   // active
+                stmtInsertUser.setString(3, user.getLogin());     // login
+                stmtInsertUser.setString(4, user.getPass());      // password
+                stmtInsertUser.setString(5, "Email");             // notification_type
+
                 rs = stmtInsertUser.executeQuery();
                 if (rs.next()) {
                     int resUserId = rs.getInt("id");
-                    user.setResUserId(resUserId);
+                    user.setResUserId(resUserId);  // Asignar el ID generado al usuario
 
+                    // Confirmar la transacción
                     conn.commit();
 
+                    logger.info("Usuario registrado correctamente: " + user.getLogin());
+                    return new Message(MessageType.OK_RESPONSE, user);
                 } else {
-                    conn.rollback();
-                    logger.severe("Error al insertar en base de datos: " + user.getLogin());
+                    conn.rollback();  // Revertir la transacción si no se puede insertar en res_users
+                    logger.severe("Error al insertar en res_users para el usuario: " + user.getLogin());
                     return new Message(MessageType.SIGNUP_ERROR, user);
                 }
             } else {
-                conn.rollback();
-                logger.severe("Error al insertar en base de datos: " + user.getLogin());
+                conn.rollback();  // Revertir la transacción si no se puede insertar en res_partner
+                logger.severe("Error al insertar en res_partner para el usuario: " + user.getLogin());
                 return new Message(MessageType.SIGNUP_ERROR, user);
             }
 
-        } catch (SQLException e) {
+        } catch (SQLIntegrityConstraintViolationException e) {
+            logger.severe("Error al insertar usuario, login repetido: " + e.getMessage());
+            return new Message(MessageType.LOGIN_EXIST_ERROR, user);
 
+        } catch (SQLException e) {
+            logger.severe("Error en la transacción de registro: " + e.getMessage());
             try {
                 if (conn != null) {
                     conn.rollback();  // Revertir la transacción en caso de error
-                    return new Message(MessageType.SIGNUP_ERROR, user);
                 }
             } catch (SQLException ex) {
-                logger.severe("Error al insertar en base de datos: " + user.getLogin());
-                return new Message(MessageType.SIGNUP_ERROR, user);
+                logger.severe("Error al hacer rollback: " + ex.getMessage());
             }
+            return new Message(MessageType.SIGNUP_ERROR, user);
 
         } finally {
-            // Asegurarse de liberar la conexión y cerrar recursos
+            // Liberar recursos en el bloque finally
             try {
                 if (rs != null) {
                     rs.close();
@@ -111,18 +116,11 @@ public class Dao implements Signable {
                 if (stmtInsertPartner != null) {
                     stmtInsertPartner.close();
                 }
-
                 if (conn != null) {
                     pool.releaseConnection(conn);
                 }
-
-                //Todo a ido bien sale por aqui.
-                logger.info("Usuario registrado correctamente: " + user.getLogin());
-                return new Message(MessageType.OK_RESPONSE, user);
-
             } catch (SQLException e) {
-                logger.severe("Error al insertar en base de datos: " + user.getLogin());
-                return new Message(MessageType.SIGNUP_ERROR, user);
+                logger.severe("Error al liberar recursos: " + e.getMessage());
             }
         }
     }
@@ -171,99 +169,6 @@ public class Dao implements Signable {
             }
             if (conn != null) {
                 pool.releaseConnection(conn);
-            }
-        }
-    }
-
-    // Método para verificar si un usuario ya existe en la base de datos
-    public Message loginExist(String login) {
-
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        try {
-            // Obtener una conexión del pool
-            conn = pool.getConnection();
-
-            // Preparar la consulta SQL
-            stmt = conn.prepareStatement(sqlLoginExist);
-            stmt.setString(1, login);
-
-            rs = stmt.executeQuery();
-
-            // Si se encuentra un usuario, el inicio de sesión es válido
-            if (rs.next()) {
-                return new Message(MessageType.LOGIN_OK, login);
-            } else {
-                return new Message(MessageType.LOGIN_EXIST_ERROR, login);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return new Message(MessageType.SQL_ERROR, login);
-        } finally {
-            // Asegurarse de liberar la conexión y cerrar el ResultSet
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    return new Message(MessageType.SQL_ERROR, login);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    return new Message(MessageType.SQL_ERROR, login);
-                }
-            }
-            if (conn != null) {
-                pool.releaseConnection(conn);
-            }
-        }
-    }
-
-    // Método para obtener las provincias de España
-    @Override
-    public Message getCountries() {
-
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        List<String> provincias = new ArrayList<>();
-
-        try {
-            // Obtener una conexión del pool
-            conn = pool.getConnection();
-
-            // Preparar la consulta SQL
-            stmt = conn.prepareStatement(sqlCountries);
-            rs = stmt.executeQuery();
-
-            // Agregar los resultados a la lista
-            while (rs.next()) {
-                provincias.add(rs.getString("name"));
-            }
-
-            return new Message(MessageType.COUNTRIES_OK, provincias);
-
-        } catch (SQLException e) {
-            return new Message(MessageType.COUNTRIES_ERROR, e);
-        } finally {
-            // Asegurarse de liberar la conexión y cerrar ResultSet
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (conn != null) {
-                    pool.releaseConnection(conn);
-                }
-            } catch (SQLException e) {
-                return new Message(MessageType.COUNTRIES_ERROR, e);
             }
         }
     }
