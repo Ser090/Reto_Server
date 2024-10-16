@@ -20,6 +20,7 @@ public class Dao implements Signable {
     private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type)VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email)VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlSignIn = "SELECT * FROM res_users WHERE login = ? AND password = ?";
+    private final String sqlSignInVitaminado = "SELECT * FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
 
     public Dao(PostgresConnectionPool pool) {
         this.pool = pool;
