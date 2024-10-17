@@ -12,8 +12,6 @@
             <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/dbserver/Dao.java</file>
             <file>file:/C:/Users/2dam/Documents/NetBeansProjects/Reto1_produccion/Reto_Server/src/server/Worker.java</file>
         </group>
-        <group name="RETO_1_SIGNUP_SIGN_IN">
-            <file>file:/C:/2DAM/RETOS%20INTERMODULARES/RETO_1_SIGN_UP_SIGN_IN/Server/src/dbserver/Dao.java</file>
-        </group>
+        <group name="RETO_1_SIGNUP_SIGN_IN"/>
     </open-files>
 </project-private>

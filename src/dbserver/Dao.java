@@ -20,7 +20,7 @@ public class Dao implements Signable {
     private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type)VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email)VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlSignIn = "SELECT * FROM res_users WHERE login = ? AND password = ?";
-    private final String sqlSignInVitaminado = "SELECT * FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
+    private final String sqlSignInVitaminado = "SELECT p.name FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
 
     public Dao(PostgresConnectionPool pool) {
         this.pool = pool;
@@ -128,7 +128,7 @@ public class Dao implements Signable {
 
     // Método para validar un usuario (inicio de sesión)
     public Message signIn(User user) {
-
+        
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -137,7 +137,7 @@ public class Dao implements Signable {
             conn = pool.getConnection();
 
             // Preparar la consulta SQL
-            stmt = conn.prepareStatement(sqlSignIn);
+            stmt = conn.prepareStatement(sqlSignInVitaminado);
             stmt.setString(1, user.getLogin());
             stmt.setString(2, user.getPass());
 
@@ -145,7 +145,10 @@ public class Dao implements Signable {
 
             // Si se encuentra un usuario, el inicio de sesión es válido
             if (rs.next()) {
-                return new Message(MessageType.OK_RESPONSE, user);
+                //Falta meter rellenar el usuario
+                User usuario = new User();
+                usuario.setName(rs.getString("name"));
+                return new Message(MessageType.OK_RESPONSE, usuario);
             } else {
                 return new Message(MessageType.SIGNIN_ERROR, user);
             }
