@@ -17,6 +17,9 @@ public class MainServer {
     // Puerto en el que se iniciará el servidor
     private final int puerto;
 
+    // Control para detener el servidor
+    private volatile boolean running = true;
+
     // Constructor que inicializa el puerto del servidor
     public MainServer(int puerto) {
         this.puerto = puerto;
@@ -24,6 +27,12 @@ public class MainServer {
 
     // Método para iniciar el servidor
     public void iniciar() {
+
+        //Implementacion de del detector de ENTER para parar el server
+        KeyPressDetector detector = new KeyPressDetector(this);
+        Thread exitThread = new Thread(detector);
+        exitThread.start();
+
         // El bloque try-with-resources asegura que el ServerSocket se cierre automáticamente
         try (ServerSocket serverSocket = new ServerSocket(puerto)) {
 
@@ -31,7 +40,7 @@ public class MainServer {
             LOGGER.info("Servidor iniciado en el puerto " + puerto);
 
             // Bucle infinito para aceptar conexiones de clientes
-            while (true) {
+            while (running) {
 
                 // Acepta la conexión de un cliente
                 Socket clienteSocket = serverSocket.accept();
@@ -50,6 +59,13 @@ public class MainServer {
             LOGGER.warning("Error al crear Server Socket.");
         }
     }
+
+    // Método para detener el servidor
+    public void detener() {
+        running = false;
+        //Aqui gestionamos la parada del pool
+    }
+
 
     // Método principal que inicia el servidor en el puerto 1234
     public static void main(String[] args) {
