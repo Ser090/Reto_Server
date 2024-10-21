@@ -16,7 +16,6 @@ import utilidades.User;
  *
  * @author Urko
  */
-
 public class Dao implements Signable {
 
     // Logger para registrar eventos y errores
@@ -51,7 +50,7 @@ public class Dao implements Signable {
             // Verificar si la conexión es válida
             if (conn == null || !conn.isValid(2)) {
                 LOGGER.warning("Error: No se pudo obtener una conexión válida.");
-                return new Message(MessageType.SIGNUP_ERROR, user);
+                return new Message(MessageType.CONNECTION_ERROR, user);
             }
 
             // Desactivar el autocommit para manejar la transacción manualmente
@@ -94,13 +93,13 @@ public class Dao implements Signable {
                     // Si no se pudo insertar en res_users, hacer rollback
                     conn.rollback();
                     LOGGER.severe("Error al insertar en res_users para el usuario: " + user.getLogin());
-                    return new Message(MessageType.SIGNUP_ERROR, user);
+                    return new Message(MessageType.SQL_ERROR, user);
                 }
             } else {
                 // Si no se pudo insertar en res_partner, hacer rollback
                 conn.rollback();
                 LOGGER.severe("Error al insertar en res_partner para el usuario: " + user.getLogin());
-                return new Message(MessageType.SIGNUP_ERROR, user);
+                return new Message(MessageType.SQL_ERROR, user);
             }
 
         } catch (SQLIntegrityConstraintViolationException e) {
@@ -110,15 +109,17 @@ public class Dao implements Signable {
 
         } catch (SQLException e) {
             // Manejar errores generales de SQL
-            LOGGER.severe("Error en la transacción de registro: " + e.getMessage());
+
             try {
                 if (conn != null) {
                     conn.rollback();  // Hacer rollback en caso de error
                 }
             } catch (SQLException ex) {
                 LOGGER.severe("Error al hacer rollback: " + ex.getMessage());
+                return new Message(MessageType.BAD_RESPONSE, user);
             }
-            return new Message(MessageType.SIGNUP_ERROR, user);
+            LOGGER.severe("Error en la transacción de registro: " + e.getMessage());
+            return new Message(MessageType.BAD_RESPONSE, user);
 
         } finally {
             // Liberar recursos en el bloque finally
@@ -137,6 +138,7 @@ public class Dao implements Signable {
                 }
             } catch (SQLException e) {
                 LOGGER.severe("Error al liberar recursos: " + e.getMessage());
+                return new Message(MessageType.BAD_RESPONSE, user);
             }
         }
     }
@@ -151,6 +153,12 @@ public class Dao implements Signable {
             // Obtener una conexión del pool
             conn = pool.getConnection();
 
+            // Verificar si la conexión es válida
+            if (conn == null || !conn.isValid(2)) {
+                LOGGER.warning("Error: No se pudo obtener una conexión válida.");
+                return new Message(MessageType.CONNECTION_ERROR, user);
+            }
+
             // Preparar la consulta SQL para validar el login
             stmt = conn.prepareStatement(sqlSignInVitaminado);
             stmt.setString(1, user.getLogin());
@@ -160,29 +168,31 @@ public class Dao implements Signable {
 
             // Si se encuentra un usuario, el inicio de sesión es válido
             if (rs.next()) {
-                User usuario = new User();  // Crear un nuevo objeto User
-                usuario.setName(rs.getString("name"));  // Rellenar el nombre
-                return new Message(MessageType.OK_RESPONSE, usuario);
+                User newUser = new User();  // Crear un nuevo objeto User
+                newUser.setName(rs.getString("name"));  // Rellenar el nombre
+                return new Message(MessageType.LOGIN_OK, newUser);
             } else {
                 return new Message(MessageType.SIGNIN_ERROR, user);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            return new Message(MessageType.SIGNIN_ERROR, user);
+
+            return new Message(MessageType.BAD_RESPONSE, user);
         } finally {
             // Asegurarse de liberar recursos y la conexión
             if (rs != null) {
                 try {
                     rs.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+
+                    return new Message(MessageType.BAD_RESPONSE, user);
                 }
             }
             if (stmt != null) {
                 try {
                     stmt.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+
+                    return new Message(MessageType.BAD_RESPONSE, user);
                 }
             }
             if (conn != null) {
