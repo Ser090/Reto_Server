@@ -22,6 +22,7 @@ public class KeyPressDetector implements Runnable {
         this.SERVER = SERVER;
     }
 
+
     @Override
     public void run() {
         try {
@@ -29,10 +30,10 @@ public class KeyPressDetector implements Runnable {
                 // Espera a que el evento suceda
                 int keyCode = System.in.read();
                 if (keyCode == 10) { // ENTER key
-                    stop = true;
                     LOGGER.info("Tecla <enter> detectada. Saliendo...");
-                    SERVER.detener();
-                    stop = true;
+                    SERVER.detener(); // Detener el servidor
+                    LOGGER.info("Servidor Parado");
+                    System.exit(0);
                 }
             }
         } catch (IOException e) {

@@ -55,18 +55,34 @@ public class MainServer {
                 Thread thread = new Thread(worker);
                 threadsList.add(thread);
                 thread.start();
-
             }
         } catch (Exception e) {
             // Log de advertencia en caso de error al crear el ServerSocket
             LOGGER.warning("Error al crear Server Socket.");
+        } finally {
+            detener();
+            LOGGER.info("Servidor parado");
         }
     }
 
     // Método para detener el servidor
     public void detener() {
         running = false;
-        //Aqui gestionamos la parada del pool
+        for (Thread thread : threadsList) {
+            if (thread.isAlive()) {
+                thread.interrupt(); // Interrumpe el hilo si está vivo
+            }
+        }
+
+        // Luego espera a que todos los hilos terminen
+        for (Thread thread : threadsList) {
+            try {
+                thread.join(); // Espera a que el hilo termine
+            } catch (InterruptedException e) {
+                // Manejar la excepción si el hilo actual es interrumpido
+                Thread.currentThread().interrupt(); // Restablece el estado de interrupción
+            }
+        }
     }
 
 
