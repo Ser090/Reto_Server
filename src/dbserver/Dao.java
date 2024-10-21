@@ -28,7 +28,7 @@ public class Dao implements Signable {
     private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type)VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email)VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlSignIn = "SELECT * FROM res_users WHERE login = ? AND password = ?";
-    private final String sqlSignInVitaminado = "SELECT p.name FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
+    private final String sqlSignInVitaminado = "SELECT p.name, u.active FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
 
     // Constructor que inicializa el pool de conexiones
     public Dao(PostgresConnectionPool pool) {
@@ -170,7 +170,13 @@ public class Dao implements Signable {
             if (rs.next()) {
                 User newUser = new User();  // Crear un nuevo objeto User
                 newUser.setName(rs.getString("name"));  // Rellenar el nombre
-                return new Message(MessageType.LOGIN_OK, newUser);
+                newUser.setActive(rs.getBoolean("active"));  // Rellenar el nombre
+                if (!newUser.getActive()) {
+                    return new Message(MessageType.NON_ACTIVE, null);
+                } else {
+                    return new Message(MessageType.LOGIN_OK, newUser);
+                }
+
             } else {
                 return new Message(MessageType.SIGNIN_ERROR, user);
             }
