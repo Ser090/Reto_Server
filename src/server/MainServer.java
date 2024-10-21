@@ -1,8 +1,9 @@
 package server;
 
-import dbserver.ApplicationServerFactory;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -20,9 +21,12 @@ public class MainServer {
     // Control para detener el servidor
     private volatile boolean running = true;
 
+    List<Thread> threadsList;
+
     // Constructor que inicializa el puerto del servidor
     public MainServer(int puerto) {
         this.puerto = puerto;
+        threadsList = new ArrayList<>();
     }
 
     // Método para iniciar el servidor
@@ -47,12 +51,11 @@ public class MainServer {
 
                 // Log para indicar que un cliente se ha conectado, mostrando su dirección IP
                 LOGGER.info("Cliente conectado desde: " + clienteSocket.getInetAddress());
+                Worker worker = new Worker(clienteSocket);
+                Thread thread = new Thread(worker);
+                threadsList.add(thread);
+                thread.start();
 
-                // Crea un Worker para manejar la conexión del cliente
-                Worker worker = ApplicationServerFactory.getInstance().crearWorker(clienteSocket);
-
-                // Inicia un nuevo hilo para manejar la comunicación con el cliente
-                new Thread(worker).start();
             }
         } catch (Exception e) {
             // Log de advertencia en caso de error al crear el ServerSocket

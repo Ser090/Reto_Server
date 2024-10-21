@@ -1,8 +1,7 @@
 package dbserver;
 
-import java.net.Socket;
 import java.util.logging.Logger;
-import server.Worker;
+import utilidades.Signable;
 
 /**
  *
@@ -12,7 +11,7 @@ public class ApplicationServerFactory {
 
     // Logger para registrar eventos y errores
     private static final Logger LOGGER = Logger.getLogger(ApplicationServerFactory.class.getName());
-
+    private Dao dao;
     // Instancia única de ApplicationServerFactory (patrón Singleton)
     private static ApplicationServerFactory instance;
 
@@ -22,6 +21,8 @@ public class ApplicationServerFactory {
     // Constructor que inicializa el pool de conexiones con un tamaño de 10 conexiones
     public ApplicationServerFactory() {
         pool = new PostgresConnectionPool(10);
+        dao = new Dao(pool);
+
     }
 
     // Método para obtener la única instancia de ApplicationServerFactory (Singleton)
@@ -34,9 +35,8 @@ public class ApplicationServerFactory {
         return instance;
     }
 
-    // Método que crea y devuelve un Worker, inyectando un DAO que utiliza el pool de conexiones
-    public Worker crearWorker(Socket clienteSocket) {
-        Dao dao = new Dao(pool); // Crea el DAO con el pool de conexiones
-        return new Worker(clienteSocket, dao); // Crea el Worker pasándole el socket y el DAO
+    public Signable acceso() {
+        return dao;
     }
+
 }

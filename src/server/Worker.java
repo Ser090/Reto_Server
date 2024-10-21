@@ -1,5 +1,6 @@
 package server;
 
+import dbserver.ApplicationServerFactory;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -7,14 +8,13 @@ import java.net.Socket;
 import java.util.logging.Logger;
 import utilidades.Message;
 import utilidades.MessageType;
-import utilidades.Signable;
 import utilidades.User;
 
 /**
  *
  * @author Sergio
  */
-public class Worker implements Runnable, Signable {
+public class Worker implements Runnable {
 
     // Logger para registrar eventos y errores
     private static final Logger LOGGER = Logger.getLogger(Worker.class.getName());
@@ -22,17 +22,13 @@ public class Worker implements Runnable, Signable {
     // Socket del cliente con el que el servidor se comunicará
     private Socket clienteSocket;
 
-    // DAO que implementa la interfaz Signable para manejar usuarios
-    private Signable dao;
-
     // Streams para enviar y recibir objetos
     private ObjectInputStream inputStream;
     private ObjectOutputStream outputStream;
 
-    // Constructor que inicializa el socket y el DAO
-    public Worker(Socket clienteSocket, Signable dao) {
+    // Constructor que inicializa el socket y el DAO SOBRA
+    public Worker(Socket clienteSocket) {
         this.clienteSocket = clienteSocket;
-        this.dao = dao;
     }
 
     // Método principal que se ejecuta en el hilo para manejar la conexión del cliente
@@ -65,18 +61,6 @@ public class Worker implements Runnable, Signable {
         }
     }
 
-    // Implementación del método signIn de la interfaz Signable
-    @Override
-    public Message signIn(User user) {
-        return dao.signIn(user); // Delegar al DAO
-    }
-
-    // Implementación del método signUp de la interfaz Signable
-    @Override
-    public Message signUp(User user) {
-        return dao.signUp(user); // Delegar al DAO
-    }
-
     // METODOS PRIVADOS
     // Procesa el mensaje recibido del cliente y responde adecuadamente
     private void procesarMensaje(Message mensaje) {
@@ -91,10 +75,10 @@ public class Worker implements Runnable, Signable {
             // Determina el tipo de mensaje (sign up o sign in) y actúa en consecuencia
             switch (mensaje.getType()) {
                 case SIGN_UP_REQUEST:
-                    respuesta = signUp(user); // Proceso de registro
+                    respuesta = ApplicationServerFactory.getInstance().acceso().signUp(user);
                     break;
                 case SIGN_IN_REQUEST:
-                    respuesta = signIn(user); // Proceso de inicio de sesión
+                    respuesta = ApplicationServerFactory.getInstance().acceso().signIn(user);
                     break;
                 default:
                     respuesta = new Message(MessageType.BAD_RESPONSE, user); // Respuesta para tipo desconocido
