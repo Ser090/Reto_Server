@@ -170,7 +170,13 @@ public class Dao implements Signable {
             if (rs.next()) {
                 User newUser = new User();  // Crear un nuevo objeto User
                 newUser.setName(rs.getString("name"));  // Rellenar el nombre
-                return new Message(MessageType.LOGIN_OK, newUser);
+                newUser.setActive(rs.getBoolean("active"));  // Rellenar el nombre
+                if (!newUser.getActive()) {
+                    return new Message(MessageType.NON_ACTIVE, null);
+                } else {
+                    return new Message(MessageType.LOGIN_OK, newUser);
+                }
+
             } else {
                 return new Message(MessageType.SIGNIN_ERROR, user);
             }
