@@ -1,8 +1,9 @@
 package server;
 
-import dbserver.ApplicationServerFactory;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -20,9 +21,12 @@ public class MainServer {
     // Control para detener el servidor
     private volatile boolean running = true;
 
+    List<Thread> threadsList;
+
     // Constructor que inicializa el puerto del servidor
     public MainServer(int puerto) {
         this.puerto = puerto;
+        threadsList = new ArrayList<>();
     }
 
     // Método para iniciar el servidor
@@ -47,23 +51,38 @@ public class MainServer {
 
                 // Log para indicar que un cliente se ha conectado, mostrando su dirección IP
                 LOGGER.info("Cliente conectado desde: " + clienteSocket.getInetAddress());
-
-                // Crea un Worker para manejar la conexión del cliente
-                Worker worker = ApplicationServerFactory.getInstance().crearWorker(clienteSocket);
-
-                // Inicia un nuevo hilo para manejar la comunicación con el cliente
-                new Thread(worker).start();
+                Worker worker = new Worker(clienteSocket);
+                Thread thread = new Thread(worker);
+                threadsList.add(thread);
+                thread.start();
             }
         } catch (Exception e) {
             // Log de advertencia en caso de error al crear el ServerSocket
             LOGGER.warning("Error al crear Server Socket.");
+        } finally {
+            detener();
+            LOGGER.info("Servidor parado");
         }
     }
 
     // Método para detener el servidor
     public void detener() {
         running = false;
-        //Aqui gestionamos la parada del pool
+        for (Thread thread : threadsList) {
+            if (thread.isAlive()) {
+                thread.interrupt(); // Interrumpe el hilo si está vivo
+            }
+        }
+
+        // Luego espera a que todos los hilos terminen
+        for (Thread thread : threadsList) {
+            try {
+                thread.join(); // Espera a que el hilo termine
+            } catch (InterruptedException e) {
+                // Manejar la excepción si el hilo actual es interrumpido
+                Thread.currentThread().interrupt(); // Restablece el estado de interrupción
+            }
+        }
     }
 
 
