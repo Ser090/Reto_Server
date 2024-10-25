@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
+import utilidades.Closeable;
 
 /**
  *
@@ -20,6 +21,8 @@ public class MainServer {
 
     // Control para detener el servidor
     private volatile boolean running = true;
+
+    private Closeable pool;
 
     List<Thread> threadsList;
 
@@ -83,6 +86,9 @@ public class MainServer {
                 Thread.currentThread().interrupt(); // Restablece el estado de interrupción
             }
         }
+
+        pool.close();
+
     }
 
 

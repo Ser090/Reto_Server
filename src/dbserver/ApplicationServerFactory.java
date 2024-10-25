@@ -1,6 +1,8 @@
 package dbserver;
 
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
+import utilidades.Closeable;
 import utilidades.Signable;
 
 /**
@@ -15,12 +17,14 @@ public class ApplicationServerFactory {
     // Instancia única de ApplicationServerFactory (patrón Singleton)
     private static ApplicationServerFactory instance;
 
+    ResourceBundle bundle = ResourceBundle.getBundle("dbserver.dbConnection");
+
     // Pool de conexiones a la base de datos Postgres
     private PostgresConnectionPool pool;
 
     // Constructor que inicializa el pool de conexiones con un tamaño de 10 conexiones
     public ApplicationServerFactory() {
-        pool = new PostgresConnectionPool(10);
+        pool = new PostgresConnectionPool(Integer.parseInt(bundle.getString("db.poolSize")));
         dao = new Dao(pool);
 
     }
@@ -37,6 +41,11 @@ public class ApplicationServerFactory {
 
     public Signable acceso() {
         return dao;
+    }
+
+    public Closeable cerrar() {
+        return pool;
+
     }
 
 }

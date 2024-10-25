@@ -6,12 +6,13 @@ import java.sql.SQLException;
 import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.logging.Logger;
+import utilidades.Closeable;
 
 /**
  *
  * @author Urko
  */
-public class PostgresConnectionPool {
+public class PostgresConnectionPool implements Closeable {
 
     // Logger para registrar eventos y errores
     private static final Logger LOGGER = Logger.getLogger(PostgresConnectionPool.class.getName());
@@ -82,5 +83,21 @@ public class PostgresConnectionPool {
         // Añadir la conexión de vuelta al pool
         connectionPool.push(connection);
         LOGGER.info("Conexión liberada de vuelta al pool. Quedan: " + connectionPool.size());
+    }
+
+    @Override
+    public synchronized void close() {
+        while (!connectionPool.isEmpty()) {
+            Connection connection = connectionPool.pop();
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    connection.close();
+                    LOGGER.info("Conexión cerrada.");
+                }
+            } catch (SQLException e) {
+                LOGGER.warning("Error al cerrar la conexión: " + e.getMessage());
+            }
+        }
+        LOGGER.info("Todas las conexiones han sido cerradas.");
     }
 }
