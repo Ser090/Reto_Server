@@ -3,6 +3,7 @@ package server;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 import utilidades.Closeable;
@@ -29,7 +30,7 @@ public class MainServer {
     // Constructor que inicializa el puerto del servidor
     public MainServer(int puerto) {
         this.puerto = puerto;
-        threadsList = new ArrayList<>();
+        threadsList = Collections.synchronizedList(new ArrayList<>());
     }
 
     // Método para iniciar el servidor
@@ -61,7 +62,7 @@ public class MainServer {
             }
         } catch (Exception e) {
             // Log de advertencia en caso de error al crear el ServerSocket
-            LOGGER.warning("Error al crear Server Socket.");
+            LOGGER.warning("Error al crear Server Socket." + e.getMessage());
         } finally {
             detener();
             LOGGER.info("Servidor parado");
@@ -71,28 +72,31 @@ public class MainServer {
     // Método para detener el servidor
     public void detener() {
         running = false;
-        for (Thread thread : threadsList) {
-            if (thread.isAlive()) {
-                thread.interrupt(); // Interrumpe el hilo si está vivo
+        synchronized (threadsList) { // Sincroniza el acceso a la lista
+            for (Thread thread : threadsList) {
+                if (thread.isAlive()) {
+                    thread.interrupt(); // Interrumpe el hilo si está vivo
+                }
+            }
+
+            // Luego espera a que todos los hilos terminen
+            for (Thread thread : threadsList) {
+                try {
+                    thread.join(); // Espera a que el hilo termine
+                } catch (InterruptedException e) {
+                    // Manejar la excepción si el hilo actual es interrumpido
+                    Thread.currentThread().interrupt(); // Restablece el estado de interrupción
+                }
             }
         }
 
-        // Luego espera a que todos los hilos terminen
-        for (Thread thread : threadsList) {
-            try {
-                thread.join(); // Espera a que el hilo termine
-            } catch (InterruptedException e) {
-                // Manejar la excepción si el hilo actual es interrumpido
-                Thread.currentThread().interrupt(); // Restablece el estado de interrupción
-            }
+        if (pool != null) {
+            pool.close();
         }
-
-        pool.close();
 
     }
-
-
     // Método principal que inicia el servidor en el puerto 1234
+
     public static void main(String[] args) {
         // Crea una instancia de MainServer con el puerto 1234
         MainServer servidor = new MainServer(1234);

@@ -51,9 +51,9 @@ public class Worker implements Runnable {
         } catch (IOException | ClassNotFoundException ex) {
             // Maneja errores de E/S o cuando la clase no es encontrada
             if (ex instanceof IOException) {
-                LOGGER.warning("Fallo en la lectura del fichero");
+                LOGGER.severe("Fallo en la lectura del fichero" + ex.getMessage());
             } else {
-                LOGGER.warning("Clase no encontrada");
+                LOGGER.severe("Clase no encontrada" + ex.getMessage());
             }
         } finally {
             // Asegura el cierre de la conexión
@@ -94,7 +94,7 @@ public class Worker implements Runnable {
             outputStream.writeObject(respuesta);
             outputStream.flush(); // Asegura que se envíen los datos
         } catch (IOException e) {
-            LOGGER.warning("Fallo en la lectura o escritura del fichero");
+            LOGGER.severe("Fallo en la lectura o escritura del fichero" + e.getMessage());
             new Message(MessageType.BAD_RESPONSE, e); // Respuesta negativa en caso de error
         }
     }
@@ -102,12 +102,19 @@ public class Worker implements Runnable {
     // Cierra la conexión con el cliente
     private void cerrarConexion() {
         try {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (outputStream != null) {
+                outputStream.close();
+            }
             // Si el socket no es nulo, lo cierra
-            if (clienteSocket != null) {
+            if (clienteSocket != null && !clienteSocket.isClosed()) {
                 clienteSocket.close();
+                LOGGER.info("Conexión cerrada con el cliente.");
             }
         } catch (Exception e) {
-            LOGGER.severe("Fallo en el cierre del server");
+            LOGGER.severe("Fallo en el cierre del server" + e.getMessage());
             new Message(MessageType.BAD_RESPONSE, e); // Mensaje de error si el cierre falla
         }
     }
