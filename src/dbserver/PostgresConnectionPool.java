@@ -69,8 +69,8 @@ public class PostgresConnectionPool implements Closeable {
     public synchronized Connection getConnection() throws SQLException {
         // Si no hay conexiones disponibles en el pool, se crea una nueva
         if (connectionPool.isEmpty()) {
-            LOGGER.info("No hay conexiones en el pool, creando una nueva...");
-            return DriverManager.getConnection(url, user, password);
+            LOGGER.info("No hay conexiones disponibles.");
+            return null;
         } else {
             // Si hay conexiones disponibles, se toma una del pool
             LOGGER.info("Conexiones disponibles: " + connectionPool.size());
