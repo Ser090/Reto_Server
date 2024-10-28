@@ -101,11 +101,6 @@ public class Dao implements Signable {
                 return new Message(MessageType.SQL_ERROR, user);
             }
 
-        } catch (SQLIntegrityConstraintViolationException e) {
-            // Manejar el error si el login ya existe
-            LOGGER.severe("Error al insertar usuario, login repetido: " + e.getMessage());
-            return new Message(MessageType.LOGIN_EXIST_ERROR, user);
-
         } catch (SQLException e) {
             // Manejar errores generales de SQL
 
@@ -117,8 +112,10 @@ public class Dao implements Signable {
                 LOGGER.severe("Error al hacer rollback: " + ex.getMessage());
                 return new Message(MessageType.BAD_RESPONSE, user);
             }
-            LOGGER.severe("Error en la transacción de registro: " + e.getMessage());
-            return new Message(MessageType.BAD_RESPONSE, user);
+            //LOGGER.severe("Error en la transacción de registro: " + e.getMessage());
+            // return new Message(MessageType.BAD_RESPONSE, user);
+            LOGGER.severe("Error al insertar usuario, login repetido: " + e.getMessage());
+            return new Message(MessageType.LOGIN_EXIST_ERROR, user);
 
         } finally {
             // Liberar recursos en el bloque finally
