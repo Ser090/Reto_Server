@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 public class KeyPressDetector implements Runnable {
 
     private static final Logger LOGGER = Logger.getLogger(KeyPressDetector.class.getName());
-    private volatile boolean stop = false;
+    private boolean stop = false;
     private final MainServer SERVER;
 
     public KeyPressDetector(MainServer SERVER) {

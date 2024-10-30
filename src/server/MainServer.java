@@ -22,7 +22,7 @@ public class MainServer {
     private final int PORT;
 
     // Control para detener el servidor
-    private volatile boolean running = true;
+    private boolean running = true;
 
     private Closeable pool;
 
