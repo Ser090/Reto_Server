@@ -52,7 +52,7 @@ public class KeyPressDetector implements Runnable {
                 // Si se detecta ENTER (código 10)
                 if (keyCode == 10) {
                     LOGGER.info("Tecla <enter> detectada. Saliendo...");
-                    SERVER.detener(); // Detiene el servidor
+                    SERVER.stopServer(); // Detiene el servidor
                     LOGGER.info("Servidor Parado");
                     System.exit(0); // Termina el programa
                 }

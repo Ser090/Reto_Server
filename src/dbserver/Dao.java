@@ -4,8 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import dbserver.PostgresConnectionPool; // Cambiado a PostgresConnectionPool
-import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilidades.Message;
 import utilidades.MessageType;
@@ -13,6 +12,12 @@ import utilidades.Signable;
 import utilidades.User;
 
 /**
+ * Clase Data Access Object (DAO) para gestionar la interacción con la base de
+ * datos relacionada con usuarios. Implementa la interfaz {@link Signable} para
+ * proporcionar métodos de registro e inicio de sesión.
+ *
+ * Esta clase utiliza un pool de conexiones a PostgreSQL para manejar las
+ * conexiones de manera eficiente y segura.
  *
  * @author Urko
  */
@@ -25,16 +30,33 @@ public class Dao implements Signable {
     private PostgresConnectionPool pool;
 
     // Consultas SQL para insertar y autenticar usuarios
-    private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type)VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
-    private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email)VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
+    private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type) VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
+    private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email) VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlSignInVitaminado = "SELECT p.name, u.active FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
 
-    // Constructor que inicializa el pool de conexiones
+    /**
+     * Constructor que inicializa el DAO con un pool de conexiones.
+     *
+     * @param pool El pool de conexiones que se usará para las operaciones de
+     * base de datos.
+     */
     public Dao(PostgresConnectionPool pool) {
         this.pool = pool;
     }
 
-    // Método para registrar un nuevo usuario
+    /**
+     * Método para registrar un nuevo usuario.
+     *
+     * Este método realiza las siguientes acciones: 1. Obtiene una conexión del
+     * pool. 2. Inserta un nuevo registro en la tabla 'res_partner'. 3. Inserta
+     * un nuevo registro en la tabla 'res_users' usando el ID del registro de
+     * 'res_partner'. 4. Maneja transacciones para asegurar la integridad de los
+     * datos.
+     *
+     * @param user El objeto User que contiene la información del nuevo usuario.
+     * @return Un objeto Message que indica el resultado de la operación.
+     */
+    @Override
     public Message signUp(User user) {
 
         Connection conn = null;
@@ -86,60 +108,68 @@ public class Dao implements Signable {
                     // Confirmar la transacción
                     conn.commit();
 
-                    LOGGER.info("Usuario registrado correctamente: " + user.getLogin());
+                    LOGGER.log(Level.INFO, "Usuario registrado correctamente: {0}", user.getLogin());
                     return new Message(MessageType.OK_RESPONSE, user);
                 } else {
                     // Si no se pudo insertar en res_users, hacer rollback
                     conn.rollback();
-                    LOGGER.severe("Error al insertar en res_users para el usuario: " + user.getLogin());
+                    LOGGER.log(Level.SEVERE, "Error al insertar en res_users para el usuario: {0}", user.getLogin());
                     return new Message(MessageType.SQL_ERROR, user);
                 }
             } else {
                 // Si no se pudo insertar en res_partner, hacer rollback
                 conn.rollback();
-                LOGGER.severe("Error al insertar en res_partner para el usuario: " + user.getLogin());
+                LOGGER.log(Level.SEVERE, "Error al insertar en res_partner para el usuario: {0}", user.getLogin());
                 return new Message(MessageType.SQL_ERROR, user);
             }
 
-        } catch (SQLException e) {
+        } catch (SQLException event) {
             // Manejar errores generales de SQL
-
             try {
                 if (conn != null) {
                     conn.rollback();  // Hacer rollback en caso de error
                 }
-            } catch (SQLException ex) {
-                LOGGER.severe("Error al hacer rollback: " + ex.getMessage());
+            } catch (SQLException sqlEvent) {
+                LOGGER.log(Level.SEVERE, "Error al hacer rollback: {0}", sqlEvent.getMessage());
                 return new Message(MessageType.BAD_RESPONSE, user);
             }
-            //LOGGER.severe("Error en la transacción de registro: " + e.getMessage());
-            // return new Message(MessageType.BAD_RESPONSE, user);
-            LOGGER.severe("Error al insertar usuario, login repetido: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error al insertar usuario, login repetido: {0}", event.getMessage());
             return new Message(MessageType.LOGIN_EXIST_ERROR, user);
 
         } finally {
             // Liberar recursos en el bloque finally
             try {
                 if (rs != null) {
-                    rs.close();
+                    rs.close();  // Cerrar ResultSet
                 }
                 if (stmtInsertUser != null) {
-                    stmtInsertUser.close();
+                    stmtInsertUser.close();  // Cerrar PreparedStatement de usuarios
                 }
                 if (stmtInsertPartner != null) {
-                    stmtInsertPartner.close();
+                    stmtInsertPartner.close();  // Cerrar PreparedStatement de socios
                 }
                 if (conn != null) {
                     pool.releaseConnection(conn);  // Liberar la conexión de vuelta al pool
                 }
-            } catch (SQLException e) {
-                LOGGER.severe("Error al liberar recursos: " + e.getMessage());
+            } catch (SQLException event) {
+                LOGGER.log(Level.SEVERE, "Error al liberar recursos: {0}", event.getMessage());
                 return new Message(MessageType.BAD_RESPONSE, user);
             }
         }
     }
 
-    // Método para validar un usuario (inicio de sesión)
+    /**
+     * Método para validar un usuario (inicio de sesión).
+     *
+     * Este método realiza las siguientes acciones: 1. Obtiene una conexión del
+     * pool. 2. Prepara la consulta SQL para validar el login y la contraseña.
+     * 3. Retorna un mensaje que indica si el inicio de sesión fue exitoso o no.
+     *
+     * @param user El objeto User que contiene la información de inicio de
+     * sesión.
+     * @return Un objeto Message que indica el resultado de la operación.
+     */
+    @Override
     public Message signIn(User user) {
 
         Connection conn = null;
@@ -166,39 +196,36 @@ public class Dao implements Signable {
             if (rs.next()) {
                 User newUser = new User();  // Crear un nuevo objeto User
                 newUser.setName(rs.getString("name"));  // Rellenar el nombre
-                newUser.setActive(rs.getBoolean("active"));  // Rellenar el nombre
+                newUser.setActive(rs.getBoolean("active"));  // Rellenar el estado de actividad
                 if (!newUser.getActive()) {
-                    return new Message(MessageType.NON_ACTIVE, null);
+                    return new Message(MessageType.NON_ACTIVE, null);  // El usuario no está activo
                 } else {
-                    return new Message(MessageType.LOGIN_OK, newUser);
+                    return new Message(MessageType.LOGIN_OK, newUser);  // Inicio de sesión exitoso
                 }
 
             } else {
-                return new Message(MessageType.SIGNIN_ERROR, user);
+                return new Message(MessageType.SIGNIN_ERROR, user);  // Error en el inicio de sesión
             }
-        } catch (SQLException e) {
-
-            return new Message(MessageType.BAD_RESPONSE, user);
+        } catch (SQLException event) {
+            return new Message(MessageType.BAD_RESPONSE, user);  // Error de respuesta en caso de excepción
         } finally {
             // Asegurarse de liberar recursos y la conexión
             if (rs != null) {
                 try {
-                    rs.close();
-                } catch (SQLException e) {
-
-                    return new Message(MessageType.BAD_RESPONSE, user);
+                    rs.close();  // Cerrar ResultSet
+                } catch (SQLException event) {
+                    return new Message(MessageType.BAD_RESPONSE, user);  // Error al cerrar ResultSet
                 }
             }
             if (stmt != null) {
                 try {
-                    stmt.close();
-                } catch (SQLException e) {
-
-                    return new Message(MessageType.BAD_RESPONSE, user);
+                    stmt.close();  // Cerrar PreparedStatement
+                } catch (SQLException event) {
+                    return new Message(MessageType.BAD_RESPONSE, user);  // Error al cerrar PreparedStatement
                 }
             }
             if (conn != null) {
-                pool.releaseConnection(conn);  // Devolver la conexión al pool
+                pool.releaseConnection(conn);  // Liberar la conexión de vuelta al pool
             }
         }
     }

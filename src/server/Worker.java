@@ -108,10 +108,10 @@ public class Worker implements Runnable {
             // Procesa la solicitud según el tipo de mensaje (registro o inicio de sesión)
             switch (message.getType()) {
                 case SIGN_UP_REQUEST:
-                    response = ApplicationServerFactory.getInstance().acceso().signUp(user);
+                    response = ApplicationServerFactory.getInstance().access().signUp(user);
                     break;
                 case SIGN_IN_REQUEST:
-                    response = ApplicationServerFactory.getInstance().acceso().signIn(user);
+                    response = ApplicationServerFactory.getInstance().access().signIn(user);
                     break;
                 default:
                     response = new Message(MessageType.BAD_RESPONSE, user); // Respuesta para tipo desconocido

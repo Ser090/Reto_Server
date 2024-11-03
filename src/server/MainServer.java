@@ -17,6 +17,8 @@ import utilidades.Closeable;
  * un nuevo hilo para cada cliente, permitiendo que varios clientes se conecten
  * al mismo tiempo. Incluye un mecanismo para detectar la tecla ENTER y detener
  * el servidor cuando sea necesario.
+ *
+ * @author Sergio
  */
 public class MainServer {
 
@@ -63,7 +65,7 @@ public class MainServer {
      * También lanza un hilo que detecta cuando se presiona ENTER para detener
      * el servidor.
      */
-    public void iniciar() {
+    public void init() {
 
         // Inicia el detector de ENTER para detener el servidor con esta tecla
         KeyPressDetector detector = new KeyPressDetector(this);
@@ -77,11 +79,11 @@ public class MainServer {
             // Bucle que sigue aceptando clientes mientras el servidor esté en ejecución
             while (running) {
                 // Espera y acepta la conexión de un cliente
-                Socket clienteSocket = serverSocket.accept();
-                LOGGER.info("Cliente conectado desde: " + clienteSocket.getInetAddress());
+                Socket socketClient = serverSocket.accept();
+                LOGGER.info("Cliente conectado desde: " + socketClient.getInetAddress());
 
                 // Crea y lanza un nuevo hilo para manejar al cliente
-                Worker worker = new Worker(clienteSocket);
+                Worker worker = new Worker(socketClient);
                 Thread thread = new Thread(worker);
                 threadsList.add(thread);
                 thread.start();
@@ -89,7 +91,7 @@ public class MainServer {
         } catch (Exception event) {
             LOGGER.warning("Error al crear Server Socket: " + event.getMessage());
         } finally {
-            detener(); // Detiene el servidor cuando termina el try
+            stopServer(); // Detiene el servidor cuando termina el try
             LOGGER.info("Servidor parado");
         }
     }
@@ -100,7 +102,7 @@ public class MainServer {
      * <p>
      * Interrumpe y espera a que todos los hilos de clientes terminen.
      */
-    public void detener() {
+    public void stopServer() {
         running = false;
 
         // Intenta interrumpir todos los hilos activos
@@ -135,9 +137,9 @@ public class MainServer {
     public static void main(String[] args) {
         // Carga las propiedades desde el archivo dbserver.dbConnection
         ResourceBundle bundle = ResourceBundle.getBundle("dbserver.dbConnection");
-        MainServer servidor = new MainServer(Integer.parseInt(bundle.getString("db.port")));
+        MainServer server = new MainServer(Integer.parseInt(bundle.getString("db.port")));
 
         // Inicia el servidor en el puerto configurado
-        servidor.iniciar();
+        server.init();
     }
 }
