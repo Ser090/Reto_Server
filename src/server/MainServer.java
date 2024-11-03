@@ -10,99 +10,134 @@ import java.util.logging.Logger;
 import utilidades.Closeable;
 
 /**
+ * Clase que representa un servidor básico multihilo.
  *
- * @author Sergio
+ * <p>
+ * Este servidor acepta conexiones de clientes en un puerto determinado y lanza
+ * un nuevo hilo para cada cliente, permitiendo que varios clientes se conecten
+ * al mismo tiempo. Incluye un mecanismo para detectar la tecla ENTER y detener
+ * el servidor cuando sea necesario.
  */
 public class MainServer {
 
-    // Instancia del logger para registrar información y errores en el servidor
+    /**
+     * Logger para registrar eventos y errores del servidor.
+     */
     private static final Logger LOGGER = Logger.getLogger(MainServer.class.getName());
 
-    // Puerto en el que se iniciará el servidor
+    /**
+     * Puerto en el que el servidor escuchará conexiones de clientes.
+     */
     private final int PORT;
 
-    // Control para detener el servidor
+    /**
+     * Variable de control para mantener el estado activo/inactivo del servidor.
+     */
     private boolean running = true;
 
+    /**
+     * Objeto Closeable para manejar el pool de conexiones.
+     */
     private Closeable pool;
 
+    /**
+     * Lista sincronizada para almacenar los hilos de cada cliente conectado.
+     */
     List<Thread> threadsList;
 
-    // Constructor que inicializa el puerto del servidor
+    /**
+     * Constructor que inicializa el servidor con el puerto especificado.
+     *
+     * @param PORT el puerto en el que el servidor escuchará
+     */
     public MainServer(int PORT) {
         this.PORT = PORT;
         threadsList = Collections.synchronizedList(new ArrayList<>());
     }
 
-    // Método para iniciar el servidor
+    /**
+     * Inicia el servidor, permitiendo aceptar conexiones de clientes en el
+     * puerto configurado.
+     *
+     * <p>
+     * También lanza un hilo que detecta cuando se presiona ENTER para detener
+     * el servidor.
+     */
     public void iniciar() {
 
-        //Implementacion de del detector de ENTER para parar el server
+        // Inicia el detector de ENTER para detener el servidor con esta tecla
         KeyPressDetector detector = new KeyPressDetector(this);
         Thread exitThread = new Thread(detector);
         exitThread.start();
 
-        // El bloque try-with-resources asegura que el ServerSocket se cierre automáticamente
+        // Usamos un bloque try-with-resources para asegurar el cierre del ServerSocket
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-
-            // Log para indicar que el servidor ha iniciado en el puerto especificado
             LOGGER.info("Servidor iniciado en el puerto " + PORT);
 
-            // Bucle infinito para aceptar conexiones de clientes
+            // Bucle que sigue aceptando clientes mientras el servidor esté en ejecución
             while (running) {
-
-                // Acepta la conexión de un cliente
+                // Espera y acepta la conexión de un cliente
                 Socket clienteSocket = serverSocket.accept();
-
-                // Log para indicar que un cliente se ha conectado, mostrando su dirección IP
                 LOGGER.info("Cliente conectado desde: " + clienteSocket.getInetAddress());
+
+                // Crea y lanza un nuevo hilo para manejar al cliente
                 Worker worker = new Worker(clienteSocket);
                 Thread thread = new Thread(worker);
                 threadsList.add(thread);
                 thread.start();
             }
-        } catch (Exception e) {
-            // Log de advertencia en caso de error al crear el ServerSocket
-            LOGGER.warning("Error al crear Server Socket." + e.getMessage());
+        } catch (Exception event) {
+            LOGGER.warning("Error al crear Server Socket: " + event.getMessage());
         } finally {
-            detener();
+            detener(); // Detiene el servidor cuando termina el try
             LOGGER.info("Servidor parado");
         }
     }
 
-    // Método para detener el servidor
+    /**
+     * Detiene el servidor y cierra todas las conexiones activas.
+     *
+     * <p>
+     * Interrumpe y espera a que todos los hilos de clientes terminen.
+     */
     public void detener() {
         running = false;
 
+        // Intenta interrumpir todos los hilos activos
         for (Thread thread : threadsList) {
             if (thread.isAlive()) {
-                thread.interrupt(); // Interrumpe el hilo si está vivo
+                thread.interrupt();
             }
         }
 
-        // Luego espera a que todos los hilos terminen
+        // Espera a que cada hilo termine antes de cerrar el servidor
         for (Thread thread : threadsList) {
             try {
-                thread.join(); // Espera a que el hilo termine
+                thread.join(); // Espera a que el hilo finalice
             } catch (InterruptedException e) {
-                // Manejar la excepción si el hilo actual es interrumpido
                 Thread.currentThread().interrupt(); // Restablece el estado de interrupción
             }
         }
 
+        // Cierra el pool de conexiones si está en uso
         if (pool != null) {
             pool.close();
         }
-
     }
-    // Método principal que inicia el servidor en el puerto 1234
 
+    /**
+     * Método principal para iniciar el servidor.
+     *
+     * <p>
+     * Carga el puerto desde un archivo de configuración y lanza el servidor.
+     *
+     */
     public static void main(String[] args) {
+        // Carga las propiedades desde el archivo dbserver.dbConnection
         ResourceBundle bundle = ResourceBundle.getBundle("dbserver.dbConnection");
-        // Crea una instancia de MainServer con el puerto 1234
         MainServer servidor = new MainServer(Integer.parseInt(bundle.getString("db.port")));
 
-        // Inicia el servidor
+        // Inicia el servidor en el puerto configurado
         servidor.iniciar();
     }
 }
