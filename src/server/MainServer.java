@@ -5,7 +5,9 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilidades.Closeable;
 
@@ -13,10 +15,22 @@ import utilidades.Closeable;
  * Clase que representa un servidor básico multihilo.
  *
  * <p>
- * Este servidor acepta conexiones de clientes en un puerto determinado y lanza
- * un nuevo hilo para cada cliente, permitiendo que varios clientes se conecten
- * al mismo tiempo. Incluye un mecanismo para detectar la tecla ENTER y detener
- * el servidor cuando sea necesario.
+ * Este servidor acepta conexiones de múltiples clientes en un puerto
+ * especificado y lanza un nuevo hilo para cada cliente, permitiendo la conexión
+ * simultánea de varios clientes. Incluye un mecanismo de interrupción mediante
+ * la tecla ENTER para detener el servidor cuando sea necesario.
+ * </p>
+ *
+ * <p>
+ * El servidor carga el puerto desde un archivo de propiedades. En caso de error
+ * o ausencia del archivo, el servidor reportará el problema y no iniciará la
+ * conexión.
+ * </p>
+ *
+ * <p>
+ * El servidor también gestiona el cierre de conexiones activas y el pool de
+ * conexiones.
+ * </p>
  *
  * @author Sergio
  */
@@ -38,14 +52,14 @@ public class MainServer {
     private boolean running = true;
 
     /**
-     * Objeto Closeable para manejar el pool de conexiones.
+     * Objeto {@code Closeable} para manejar el pool de conexiones.
      */
     private Closeable pool;
 
     /**
      * Lista sincronizada para almacenar los hilos de cada cliente conectado.
      */
-    List<Thread> threadsList;
+    private List<Thread> threadsList;
 
     /**
      * Constructor que inicializa el servidor con el puerto especificado.
@@ -63,7 +77,8 @@ public class MainServer {
      *
      * <p>
      * También lanza un hilo que detecta cuando se presiona ENTER para detener
-     * el servidor.
+     * el servidor de manera segura.
+     * </p>
      */
     public void init() {
 
@@ -100,7 +115,12 @@ public class MainServer {
      * Detiene el servidor y cierra todas las conexiones activas.
      *
      * <p>
-     * Interrumpe y espera a que todos los hilos de clientes terminen.
+     * Este método interrumpe y espera a que todos los hilos de clientes
+     * finalicen, asegurando una detención limpia del servidor.
+     * </p>
+     * <p>
+     * También cierra el pool de conexiones si está en uso.
+     * </p>
      */
     public void stopServer() {
         running = false;
@@ -131,15 +151,23 @@ public class MainServer {
      * Método principal para iniciar el servidor.
      *
      * <p>
-     * Carga el puerto desde un archivo de configuración y lanza el servidor.
-     *
+     * Carga el puerto desde un archivo de configuración y lanza el servidor. Si
+     * el archivo de configuración o el valor del puerto es inválido, el
+     * servidor no inicia y se registra el error correspondiente.
+     * </p>
      */
     public static void main(String[] args) {
-        // Carga las propiedades desde el archivo dbserver.dbConnection
-        ResourceBundle bundle = ResourceBundle.getBundle("dbserver.dbConnection");
-        MainServer server = new MainServer(Integer.parseInt(bundle.getString("db.port")));
+        try {
+            // Carga las propiedades desde el archivo dbserver.dbConnection
+            ResourceBundle bundle = ResourceBundle.getBundle("dbserver.dbConnection");
+            MainServer server = new MainServer(Integer.parseInt(bundle.getString("db.port")));
 
-        // Inicia el servidor en el puerto configurado
-        server.init();
+            // Inicia el servidor en el puerto configurado
+            server.init();
+        } catch (MissingResourceException event) {
+            LOGGER.log(Level.SEVERE, "El archivo de propiedades no se encuentra: {0}", event.getMessage());
+        } catch (NumberFormatException event) {
+            LOGGER.log(Level.SEVERE, "El archivo de propiedades tiene parámetros incorrectos: {0}", event.getMessage());
+        }
     }
 }
