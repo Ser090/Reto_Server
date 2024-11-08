@@ -151,10 +151,13 @@ public class MainServer {
      * Método principal para iniciar el servidor.
      *
      * <p>
-     * Carga el puerto desde un archivo de configuración y lanza el servidor. Si
-     * el archivo de configuración o el valor del puerto es inválido, el
-     * servidor no inicia y se registra el error correspondiente.
+     * Carga el puerto desde el archivo de propiedades
+     * <code>dbserver.dbConnection</code> y lanza el servidor. Si el archivo no
+     * se encuentra o el valor del puerto es inválido, se registra un mensaje de
+     * error y el servidor no se inicia.
      * </p>
+     *
+     * @param args Argumentos de la línea de comandos (no utilizados).
      */
     public static void main(String[] args) {
         try {
