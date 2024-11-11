@@ -19,6 +19,8 @@ import utilidades.User;
  * recibir y procesar mensajes, así como de enviar respuestas. Trabaja con
  * objetos de tipo Message para coordinar acciones como registro o inicio de
  * sesión de usuarios.
+ *
+ * @author Sergio
  */
 public class Worker implements Runnable {
 
