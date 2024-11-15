@@ -112,6 +112,9 @@ public class Worker implements Runnable {
                 case SIGN_UP_REQUEST:
                     response = ApplicationServerFactory.getInstance().access().signUp(user);
                     break;
+                case ACTUALIZAR_REQUEST:
+                    response = ApplicationServerFactory.getInstance().access().actualizar(user);
+                    break;
                 case SIGN_IN_REQUEST:
                     response = ApplicationServerFactory.getInstance().access().signIn(user);
                     break;

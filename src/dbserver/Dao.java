@@ -32,7 +32,8 @@ public class Dao implements Signable {
     // Consultas SQL para insertar y autenticar usuarios
     private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type) VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email) VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
-    private final String sqlSignInVitaminado = "SELECT p.name, u.active FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
+    private final String sqlUpdatePartner = "UPDATE res_partner SET name = ?, display_name = ?, street = ?, zip = ?, city = ? WHERE id = ?";
+    private final String sqlSignInVitaminado = "SELECT p.*,u.partner_id as idValido, u.login, u.password, u.active as activoValido FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
 
     /**
      * Constructor que inicializa el DAO con un pool de conexiones.
@@ -158,6 +159,74 @@ public class Dao implements Signable {
         }
     }
 
+    @Override
+    public Message actualizar(User user) {
+
+        Connection conn = null;
+        PreparedStatement stmtUpdatePartner = null;
+        ResultSet rs = null;
+
+        try {
+            // Obtener una conexión del pool de conexiones
+            conn = pool.getConnection();
+
+            // Verificar si la conexión es válida
+            if (conn == null || !conn.isValid(2)) {
+                LOGGER.warning("Error: No se pudo obtener una conexión válida.");
+                return new Message(MessageType.CONNECTION_ERROR, user);
+            }
+
+            // Desactivar el autocommit para manejar la transacción manualmente
+            conn.setAutoCommit(false);
+
+            // Preparar e insertar en la tabla res_partner
+            stmtUpdatePartner = conn.prepareStatement(sqlUpdatePartner);
+            stmtUpdatePartner.setString(1, user.getName());      // nombre
+            stmtUpdatePartner.setString(2, user.getName());      // display_name
+            stmtUpdatePartner.setString(3, user.getStreet());    // street
+            stmtUpdatePartner.setString(4, user.getZip());       // zip
+            stmtUpdatePartner.setString(5, user.getCity());      // city
+            stmtUpdatePartner.setInt(6, user.getResUserId());   //ID
+
+            // Ejecutar la consulta e insertar en res_partner
+            stmtUpdatePartner.executeUpdate();
+            conn.commit();
+
+            return new Message(MessageType.OK_ACTUALIZAR, user);
+
+        } catch (SQLException event) {
+            // Manejar errores generales de SQL
+            try {
+                if (conn != null) {
+                    conn.rollback();  // Hacer rollback en caso de error
+                }
+            } catch (SQLException sqlEvent) {
+                LOGGER.log(Level.SEVERE, "Error al hacer rollback: {0}", sqlEvent.getMessage());
+                return new Message(MessageType.BAD_RESPONSE, user);
+            }
+            LOGGER.log(Level.SEVERE, "Error al insertar usuario, login repetido: {0}", event.getMessage());
+            return new Message(MessageType.LOGIN_EXIST_ERROR, user);
+
+        } finally {
+            // Liberar recursos en el bloque finally
+            try {
+                if (rs != null) {
+                    rs.close();  // Cerrar ResultSet
+                }
+
+                if (stmtUpdatePartner != null) {
+                    stmtUpdatePartner.close();  // Cerrar PreparedStatement de socios
+                }
+                if (conn != null) {
+                    pool.releaseConnection(conn);  // Liberar la conexión de vuelta al pool
+                }
+            } catch (SQLException event) {
+                LOGGER.log(Level.SEVERE, "Error al liberar recursos: {0}", event.getMessage());
+                return new Message(MessageType.BAD_RESPONSE, user);
+            }
+        }
+    }
+
     /**
      * Método para validar un usuario (inicio de sesión).
      *
@@ -195,8 +264,14 @@ public class Dao implements Signable {
             // Si se encuentra un usuario, el inicio de sesión es válido
             if (rs.next()) {
                 User newUser = new User();  // Crear un nuevo objeto User
+                newUser.setResUserId(rs.getInt("idValido"));  // Rellenar el nombre
                 newUser.setName(rs.getString("name"));  // Rellenar el nombre
-                newUser.setActive(rs.getBoolean("active"));  // Rellenar el estado de actividad
+                newUser.setCity(rs.getString("city"));
+                newUser.setLogin(rs.getString("login"));
+                newUser.setStreet(rs.getString("street"));
+                newUser.setZip(rs.getString("zip"));
+                newUser.setPass(rs.getString("password"));
+                newUser.setActive(rs.getBoolean("activoValido"));  // Rellenar el estado de actividad
                 if (!newUser.getActive()) {
                     return new Message(MessageType.NON_ACTIVE, null);  // El usuario no está activo
                 } else {
