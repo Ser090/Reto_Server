@@ -27,9 +27,6 @@
             <file>file:/C:/Users/urkop/OneDrive/Documentos/NetBeansProjects/Reto_1_Prod/Reto_Server/nbproject/project.properties</file>
             <file>file:/C:/Users/urkop/OneDrive/Documentos/NetBeansProjects/Reto_1_Prod/Reto_Server/src/server/Worker.java</file>
         </group>
-        <group name="RETO_1_SIGNUP_SIGN_IN">
-            <file>file:/C:/2DAM/RETOS%20INTERMODULARES/RETO_1_SIGN_UP_SIGN_IN/Server/src/dbserver/ApplicationServerFactory.java</file>
-            <file>file:/C:/2DAM/RETOS%20INTERMODULARES/RETO_1_SIGN_UP_SIGN_IN/Server/src/server/Worker.java</file>
-        </group>
+        <group name="RETO_1_SIGNUP_SIGN_IN"/>
     </open-files>
 </project-private>

@@ -115,6 +115,8 @@ public class Worker implements Runnable {
                 case SIGN_IN_REQUEST:
                     response = ApplicationServerFactory.getInstance().access().signIn(user);
                     break;
+                case GET_USER:
+                    response = ApplicationServerFactory.getInstance().access().getUser(user);
                 default:
                     response = new Message(MessageType.BAD_RESPONSE, user); // Respuesta para tipo desconocido
             }

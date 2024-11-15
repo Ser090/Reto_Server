@@ -33,6 +33,7 @@ public class Dao implements Signable {
     private final String sqlInsertUser = "INSERT INTO res_users(company_id, partner_id, active, login, password, notification_type) VALUES (1, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlInsertPartner = "INSERT INTO res_partner (company_id, name, display_name, street, zip, city, email) VALUES (1, ?, ?, ?, ?, ?, ?) RETURNING id";
     private final String sqlSignInVitaminado = "SELECT p.name, u.active FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
+    private final String sqlGetUser = "SELECT * FROM res_users u JOIN res_partner p ON u.partner_id = p.id WHERE u.login = ? AND u.password = ?";
 
     /**
      * Constructor que inicializa el DAO con un pool de conexiones.
@@ -205,6 +206,67 @@ public class Dao implements Signable {
 
             } else {
                 return new Message(MessageType.SIGNIN_ERROR, user);  // Error en el inicio de sesión
+            }
+        } catch (SQLException event) {
+            return new Message(MessageType.BAD_RESPONSE, user);  // Error de respuesta en caso de excepción
+        } finally {
+            // Asegurarse de liberar recursos y la conexión
+            if (rs != null) {
+                try {
+                    rs.close();  // Cerrar ResultSet
+                } catch (SQLException event) {
+                    return new Message(MessageType.BAD_RESPONSE, user);  // Error al cerrar ResultSet
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();  // Cerrar PreparedStatement
+                } catch (SQLException event) {
+                    return new Message(MessageType.BAD_RESPONSE, user);  // Error al cerrar PreparedStatement
+                }
+            }
+            if (conn != null) {
+                pool.releaseConnection(conn);  // Liberar la conexión de vuelta al pool
+            }
+        }
+    }
+
+    @Override
+    public Message getUser(User user) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            // Obtener una conexión del pool
+            conn = pool.getConnection();
+
+            // Verificar si la conexión es válida
+            if (conn == null || !conn.isValid(2)) {
+                LOGGER.warning("Error: No se pudo obtener una conexión válida.");
+                return new Message(MessageType.CONNECTION_ERROR, user);
+            }
+
+            // Preparar la consulta SQL para validar el login
+            stmt = conn.prepareStatement(sqlGetUser);
+            stmt.setString(1, user.getLogin());
+            stmt.setString(2, user.getPass());
+
+            rs = stmt.executeQuery();
+
+            // Si se encuentra un usuario, el inicio de sesión es válido
+            if (rs.next()) {
+                User newUser = new User();
+                newUser.setLogin(rs.getString("login"));// Crear un nuevo objeto User
+                newUser.setName(rs.getString("name"));  // Rellenar el nombre
+                newUser.setPass(rs.getString("password"));
+                newUser.setStreet(rs.getString("street"));
+                newUser.setZip(rs.getString("zip"));
+                newUser.setCity(rs.getString("city"));
+                newUser.setActive(rs.getBoolean("active"));  // Rellenar el estado de actividad
+                return new Message(MessageType.GET_OK, newUser);
+
+            } else {
+                return new Message(MessageType.GET_FAIL, user);  // Error en el inicio de sesión
             }
         } catch (SQLException event) {
             return new Message(MessageType.BAD_RESPONSE, user);  // Error de respuesta en caso de excepción
